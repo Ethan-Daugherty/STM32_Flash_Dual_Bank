@@ -5,10 +5,8 @@
 * STM32U545 has dual-bank boot mode
 * Read-while-write functionality
 * Use FLASH\_OPTR register(pg 342, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf)):
-
- 			    bit 21=DUAL\_BANK(0 single bank config, 1 dual bank config)
-
- 			    bit 20=SWAP\_BANK(0 Bank 1 and Bank 2 addresses not swapped, 1 Bank1 and Bank2 addresses are swapped)
+  bit 21=DUAL\_BANK(0 single bank config, 1 dual bank config)
+  bit 20=SWAP\_BANK(0 Bank 1 and Bank 2 addresses not swapped, 1 Bank1 and Bank2 addresses are swapped)
 
 * Active bank memory address= 0x0800 0000
 * Inactive bank memory address= 0x0804 0000
