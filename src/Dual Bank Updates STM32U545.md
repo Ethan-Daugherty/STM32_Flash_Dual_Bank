@@ -1,4 +1,14 @@
 # **Firmware in-the-field Updates for STM32**
+### **WARNING**
+WRITING TO OPTION BYTE AREA IN UART BOOTLOADER CAN BRICK THE DEVICE IF NOT HANDLED PROPERLY
+MUST READ FULL OPTION BYTE AREA TO MODIFY ANY OF THE REGISTERS BECAUSE THE WRITE ERASES
+THE ENTIRE BLOCK WHERE THE OPTION BYTES ARE. 
+
+DATA SHOULD BE IN LITTLE ENDIAN BECAUSE OF THE INTERNAL ARCHITECTURE OF THE STM32(i.e. DEFAULT VALUE OF FLASH_OPTR: 0x1FEFF8AA WILL BE READ/SENT AS 0xAAF8EF1F).
+
+### **Option Byte Area**
+The option byte registers for the STM32U5 can be found (pg.307 [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf)):
+The registers that make up the option byte area are the registers are the registers after reset are write protected mentioned in that section.
 
 ### **Operations of STM32U5**
 
@@ -23,7 +33,7 @@
 * Reset will occur when a write happens on the FLASH\_OPTR register for the swap bank bit(pg. 20, [USART protocol used in the STM32 bootloader](https://www.st.com/resource/en/application_note/an3155-usart-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf))
 
 ### **Procedure for Unlocking Registers to Write**
-
+UART bootloader write command will handle this if memory address is in the option byte area
 1. Unlock by writing KEY1 and KEY2 to FLASH\_SECKEYR or FLASH\_NSKEYR(pg. 298, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
    The following sequence is used to unlock these registers:
    1. Write KEY1 = 0x45670123 in FLASH\_SECKEYR or FLASH\_NSKEYR.
@@ -35,9 +45,11 @@
    3. Write OPTKEY2 = 0x4C5D6E7F in FLASH\_OPTKEYR.
 3. Write to desired register the new values
 
-* This sequence will need to be used to swap memory banks
+* This sequence will need to be used to swap memory banks|**bootloader handles this whole sequence if writing to the option byte area.** 
 * Option-byte programming steps(pg. 307, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
-* Sequence to swap banks: Write KEY1 and KEY2 to FLASH\_NSKEYR -> Write OPTKEY1 and OPTKEY2 to FLASH\_OPTKEYR -> Write SWAP\_BANK to FLASH\_OPTR -> Write OPTSTRT to FLASH\_NSCR
+* Sequence to swap banks: Write KEY1 and KEY2 to FLASH\_NSKEYR -> Write OPTKEY1 and OPTKEY2 to FLASH\_OPTKEYR -> Write SWAP\_BANK to FLASH\_OPTR -> Write OPTSTRT to FLASH\_NSCR -> Write OBL\_LAUNCH to FLASH\_NSCR
+* OPTSTRT bit 17 of FlASH\_NSCR(pg. 337, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
+* OBL\_LAUNCH bit 27 of FlASH\_NSCR(pg. 337, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
 * FLASH\_NSKEYR is to used to unlock FLASH\_NSCR which is used to allow nonsecure programming and erasing in flash(pg.331, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
 * OPSTRT is used start using the modifications to the option registers(pg.337, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
 * FLASH\_OPTKEYR is used to unlock the FLASH\_OPTR register(pg. 332, [STM32U5 Reference Manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/group0/f3/60/ca/d2/98/c8/47/88/DM00477635/files/DM00477635.pdf/jcr:content/translations/en.DM00477635.pdf))
@@ -63,7 +75,7 @@
 * Use STM32CubeProgrammer to see memory blocks and registers in the device and to modify registers
 * Use a modified version of the STM32 Flash Library made by particle since we are currently planning on make use of the particle asset ota feature.
 
- 	--Mods will include changing address where the program will be flashed, changing to page erase instead of mass global erase, and adding switch bank logic to switch to 	new bank once verified
+ 	--Mods will include changing address where the program will be flashed to inactive bank, changing to page/bank erase instead of mass global erase, adding readFromMemory command, and adding switch bank logic to switch to new bank once verified
 
 
 
